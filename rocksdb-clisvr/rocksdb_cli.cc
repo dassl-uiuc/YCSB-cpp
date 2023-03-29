@@ -85,11 +85,16 @@ DB::Status RocksdbCli::Insert(const std::string &table, const std::string &key, 
   std::cout << "[INSERT] key: " << key << " value:\n" << vstream.str();
 #endif
 
-  rpc_->resize_msg_buffer(&req_, k_size + v_size);
-  rpc_->enqueue_request(session_num_, INSERT_REQ, &req_, &resp_, rpc_cont_func, nullptr);
+  // rpc_->resize_msg_buffer(&req_, k_size + v_size);
+  // rpc_->enqueue_request(session_num_, INSERT_REQ, &req_, &resp_, rpc_cont_func, nullptr);
+  // pollForRpcComplete();
+  // assert(resp_.get_data_size() == sizeof(DB::Status));
+  // return *reinterpret_cast<DB::Status *>(resp_.buf_);
+  rpc_->resize_msg_buffer(&req_, strlen("hello"));
+  sprintf(reinterpret_cast<char *>(req_.buf_), "%s", "hello");
+  rpc_->enqueue_request(session_num_, TEST_REQ, &req_, &resp_, rpc_cont_func, nullptr);
   pollForRpcComplete();
-  assert(resp_.get_data_size() == sizeof(DB::Status));
-  return *reinterpret_cast<DB::Status *>(resp_.buf_);
+  return DB::Status::kOK;
 }
 
 DB::Status RocksdbCli::Delete(const std::string &table, const std::string &key) {

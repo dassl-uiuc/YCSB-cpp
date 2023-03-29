@@ -46,13 +46,14 @@ int main(const int argc, const char *argv[]) {
   const std::string &server_udpport = props.GetProperty(PROP_UDP_PORT_SVR, PROP_UDP_PORT_SVR_DEFAULT);
   const std::string server_uri = server_hostname + ":" + server_udpport;
 
-  erpc::Nexus nexus(server_uri, 0, 0);
+  erpc::Nexus nexus(server_uri, 0, 4);
 
   std::cout << "start eRPC server on " << server_uri << std::endl;
 
   nexus.register_req_func(READ_REQ, read_handler);
-  nexus.register_req_func(INSERT_REQ, insert_handler);
+  nexus.register_req_func(INSERT_REQ, insert_handler, erpc::ReqFuncType::kBackground);
   nexus.register_req_func(DELETE_REQ, delete_handler);
+  nexus.register_req_func(TEST_REQ, test_handler);
 
   const int n_threads = std::stoi(props.GetProperty("threadcount", "1"));
   std::vector<std::thread> server_threads;
@@ -117,6 +118,7 @@ void insert_handler(erpc::ReqHandle *req_handle, void *context) {
 #endif
 
   rocksdb::WriteOptions wopt;
+  wopt.sync = true;
   rocksdb::Status s = db->Put(wopt, key, value);
 
   auto &resp = req_handle->pre_resp_msgbuf_;
@@ -146,6 +148,15 @@ void delete_handler(erpc::ReqHandle *req_handle, void *context) {
   } else {
     *reinterpret_cast<DB::Status *>(resp.buf_) = DB::Status::kError;
   }
+  rpc->enqueue_response(req_handle, &resp);
+}
+
+void test_handler(erpc::ReqHandle *req_handle, void *context) {
+  auto *rpc = static_cast<ServerContext *>(context)->rpc_;
+  auto &resp = req_handle->pre_resp_msgbuf_;
+  rpc->resize_msg_buffer(&resp, strlen("world"));
+  sprintf(reinterpret_cast<char *>(resp.buf_), "world");
+  usleep(500);
   rpc->enqueue_response(req_handle, &resp);
 }
 

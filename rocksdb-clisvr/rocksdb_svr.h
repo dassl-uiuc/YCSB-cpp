@@ -14,6 +14,7 @@
 void read_handler(erpc::ReqHandle *req_handle, void *context);
 void insert_handler(erpc::ReqHandle *req_handle, void *context);
 void delete_handler(erpc::ReqHandle *req_handle, void *context);
+void test_handler(erpc::ReqHandle *req_handle, void *context);
 
 class ServerContext {
  public:

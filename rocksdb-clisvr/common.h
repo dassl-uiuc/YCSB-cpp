@@ -106,3 +106,4 @@ const std::string PROP_FS_URI_DEFAULT = "";
 #define READ_REQ 0
 #define INSERT_REQ 1
 #define DELETE_REQ 2
+#define TEST_REQ 3
