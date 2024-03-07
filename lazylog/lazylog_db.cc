@@ -1,7 +1,7 @@
 #include "lazylog_db.h"
 
 #include "core/db_factory.h"
-#include "core/utils.h"
+#include "utils/utils.h"
 
 namespace ycsbc {
 

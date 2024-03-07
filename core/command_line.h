@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "core/properties.h"
+#include "utils/properties.h"
 
 inline bool StrStartWith(const char *str, const char *pre) { return strncmp(str, pre, strlen(pre)) == 0; }
 
