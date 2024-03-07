@@ -2,7 +2,7 @@
 #define YCSB_C_ROCKSDB_CLI_H_
 
 #include "core/db.h"
-#include "core/properties.h"
+#include "utils/properties.h"
 #include "rpc.h"
 
 namespace ycsbc {

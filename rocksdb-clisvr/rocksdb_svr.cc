@@ -11,8 +11,8 @@
 #include "common.h"
 #include "core/command_line.h"
 #include "core/db.h"
-#include "core/properties.h"
-#include "core/utils.h"
+#include "utils/properties.h"
+#include "utils/utils.h"
 #include "rpc.h"
 
 #define DEBUG 0

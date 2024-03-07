@@ -12,7 +12,7 @@
 #include <mutex>
 
 #include "core/db.h"
-#include "core/properties.h"
+#include "utils/properties.h"
 
 #include <rocksdb/db.h>
 #include <rocksdb/options.h>
@@ -92,6 +92,7 @@ class RocksdbDB : public DB {
 
   int fieldcount_;
 
+  static std::vector<rocksdb::ColumnFamilyHandle *> cf_handles_;
   static rocksdb::DB *db_;
   static int ref_cnt_;
   static std::mutex mu_;

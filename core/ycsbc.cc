@@ -17,15 +17,16 @@
 #include <chrono>
 #include <iomanip>
 
-#include "utils.h"
-#include "timer.h"
 #include "client.h"
-#include "measurements.h"
 #include "core_workload.h"
-#include "countdown_latch.h"
 #include "db_factory.h"
 #include "workload_factory.h"
 #include "pure_insert_workload.h"
+#include "measurements.h"
+#include "utils/countdown_latch.h"
+#include "utils/rate_limit.h"
+#include "utils/timer.h"
+#include "utils/utils.h"
 
 const std::string YAML_NAME_PROPERTY = "yamlname";
 
@@ -34,7 +35,7 @@ bool StrStartWith(const char *str, const char *pre);
 void ParseCommandLine(int argc, const char *argv[], ycsbc::utils::Properties &props);
 void SaveRunSummary(YAML::Node &node, ycsbc::utils::Properties &props, std::time_t &now);
 
-void StatusThread(ycsbc::Measurements *measurements, CountDownLatch *latch, CountDownLatch *init_latch, int interval, int interval_us, const std::string &tracefilename) {
+void StatusThread(ycsbc::Measurements *measurements, ycsbc::utils::CountDownLatch *latch, ycsbc::utils::CountDownLatch *init_latch, int interval, int interval_us, const std::string &tracefilename) {
   using namespace std::chrono;
   init_latch->Await(); // wait for all client threads to finish initializing before start printing status
   time_point<system_clock> start = system_clock::now();
@@ -65,6 +66,39 @@ void StatusThread(ycsbc::Measurements *measurements, CountDownLatch *latch, Coun
   if (!tracefilename.empty()) {
     dynamic_cast<std::ofstream *>(os)->close();
     delete os;
+  }
+}
+
+void RateLimitThread(std::string rate_file, std::vector<ycsbc::utils::RateLimiter *> rate_limiters,
+                     ycsbc::utils::CountDownLatch *latch) {
+  std::ifstream ifs;
+  ifs.open(rate_file);
+
+  if (!ifs.is_open()) {
+    ycsbc::utils::Exception("failed to open: " + rate_file);
+  }
+
+  int64_t num_threads = rate_limiters.size();
+
+  int64_t last_time = 0;
+  while (!ifs.eof()) {
+    int64_t next_time;
+    int64_t next_rate;
+    ifs >> next_time >> next_rate;
+
+    if (next_time <= last_time) {
+      ycsbc::utils::Exception("invalid rate file");
+    }
+
+    bool done = latch->AwaitFor(next_time - last_time);
+    if (done) {
+      break;
+    }
+    last_time = next_time;
+
+    for (auto x : rate_limiters) {
+      x->SetRate(next_rate / num_threads);
+    }
   }
 }
 
@@ -101,6 +135,7 @@ int main(const int argc, const char *argv[]) {
   ycsbc::CoreWorkload *wl = ycsbc::WorkloadFactory::CreateWorkload(props);
   wl->Init(props);
 
+  // print status periodically
   const bool show_status = (props.GetProperty("status", "false") == "true");
   const int status_interval = std::stoi(props.GetProperty("status.interval", "10"));
   const int status_interval_us = std::stoi(props.GetProperty("status.intervalus", "1000"));
@@ -109,9 +144,12 @@ int main(const int argc, const char *argv[]) {
 
   // load phase
   if (do_load) {
+    // initial ops per second, unlimited if <= 0
+    const int64_t ops_limit = std::stoi(props.GetProperty("limit.ops", "0"));
+
     const int total_ops = stoi(props[ycsbc::CoreWorkload::RECORD_COUNT_PROPERTY]);
 
-    CountDownLatch latch(num_threads), init_latch(num_threads);
+    ycsbc::utils::CountDownLatch latch(num_threads), init_latch(num_threads);
     ycsbc::utils::Timer<double> timer;
 
     std::future<void> status_future;
@@ -120,13 +158,20 @@ int main(const int argc, const char *argv[]) {
                                  measurements, &latch, &init_latch, status_interval, status_interval_us, status_trace);
     }
     std::vector<std::future<int>> client_threads;
+    std::vector<ycsbc::utils::RateLimiter *> rate_limiters;
     for (int i = 0; i < num_threads; ++i) {
       int thread_ops = total_ops / num_threads;
       if (i < total_ops % num_threads) {
         thread_ops++;
       }
+      ycsbc::utils::RateLimiter *rlim = nullptr;
+      if (ops_limit > 0) {
+        int64_t per_thread_ops = ops_limit / num_threads;
+        rlim = new ycsbc::utils::RateLimiter(per_thread_ops, per_thread_ops);
+      }
+      rate_limiters.push_back(rlim);
       client_threads.emplace_back(std::async(std::launch::async, ycsbc::ClientThread, dbs[i], wl, props, thread_ops, i,
-                                             num_threads, true, true, !do_transaction || dbs[i]->ReInitBeforeTransaction(), &latch, &init_latch, sec_skip));
+                                             num_threads, true, true, !do_transaction || dbs[i]->ReInitBeforeTransaction(), &latch, &init_latch, rlim, sec_skip));
     }
     assert((int)client_threads.size() == num_threads);
     init_latch.Await();
@@ -167,11 +212,17 @@ int main(const int argc, const char *argv[]) {
   measurements->Reset();
   std::this_thread::sleep_for(std::chrono::seconds(stoi(props.GetProperty("sleepafterload", "0"))));
 
+
   // transaction phase
   if (do_transaction) {
+    // initial ops per second, unlimited if <= 0
+    const int64_t ops_limit = std::stoi(props.GetProperty("limit.ops", "0"));
+    // rate file path for dynamic rate limiting, format "time_stamp_sec new_ops_per_second" per line
+    std::string rate_file = props.GetProperty("limit.file", "");
+
     const int total_ops = stoi(props[ycsbc::CoreWorkload::OPERATION_COUNT_PROPERTY]);
 
-    CountDownLatch latch(num_threads), init_latch(num_threads);
+    ycsbc::utils::CountDownLatch latch(num_threads), init_latch(num_threads);
     ycsbc::utils::Timer<double> timer;
 
     std::future<void> status_future;
@@ -180,14 +231,27 @@ int main(const int argc, const char *argv[]) {
                                  measurements, &latch, &init_latch, status_interval, status_interval_us, status_trace);
     }
     std::vector<std::future<int>> client_threads;
+    std::vector<ycsbc::utils::RateLimiter *> rate_limiters;
     for (int i = 0; i < num_threads; ++i) {
       int thread_ops = total_ops / num_threads;
       if (i < total_ops % num_threads) {
         thread_ops++;
       }
+      ycsbc::utils::RateLimiter *rlim = nullptr;
+      if (ops_limit > 0 || rate_file != "") {
+        int64_t per_thread_ops = ops_limit / num_threads;
+        rlim = new ycsbc::utils::RateLimiter(per_thread_ops, per_thread_ops);
+      }
+      rate_limiters.push_back(rlim);
       client_threads.emplace_back(std::async(std::launch::async, ycsbc::ClientThread, dbs[i], wl, props, thread_ops, i,
-                                             num_threads, false, !do_load || dbs[i]->ReInitBeforeTransaction(), true, &latch, &init_latch, sec_skip));
+                                             num_threads, false, !do_load || dbs[i]->ReInitBeforeTransaction(), true, &latch, &init_latch, rlim, sec_skip));
     }
+
+    std::future<void> rlim_future;
+    if (rate_file != "") {
+      rlim_future = std::async(std::launch::async, RateLimitThread, rate_file, rate_limiters, &latch);
+    }
+
     assert((int)client_threads.size() == num_threads);
     init_latch.Await();
     timer.Start();

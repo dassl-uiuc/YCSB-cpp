@@ -7,7 +7,9 @@
 #define YCSB_C_LAYZLOG_DB_H_
 
 #include "core/db.h"
-#include "client/lazylog_cli.h"
+
+#include <src/utils/properties.h>
+#include <src/client/lazylog_cli.h>
 
 namespace ycsbc {
 

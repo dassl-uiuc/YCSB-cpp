@@ -1,7 +1,7 @@
 #ifndef YCSB_C_WORKLOAD_FACTORY_H_
 #define YCSB_C_WORKLOAD_FACTORY_H_
 
-#include "properties.h"
+#include "utils/properties.h"
 #include "core_workload.h"
 
 #include <map>
