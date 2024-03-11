@@ -87,6 +87,17 @@ class DBWrapper : public DB {
     }
     return s;
   }
+  Status ReadIdx(const uint64_t idx, std::string &data) {
+    timer_.Start();
+    Status s = db_->ReadIdx(idx, data);
+    uint64_t elapsed = timer_.End();
+    if (s == kOK) {
+      measurements_->Report(RDIDX, elapsed);
+    } else {
+      measurements_->Report(RDIDX_FAILED, elapsed);
+    }
+    return s;
+  }
 
   bool ReInitBeforeTransaction() override { return db_->ReInitBeforeTransaction(); }
  private:

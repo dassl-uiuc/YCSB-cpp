@@ -28,9 +28,11 @@ class LazylogDB : public DB {
 
   Status Update(const std::string &table, const std::string &key, std::vector<Field> &values) {}
 
-  Status Insert(const std::string &table, const std::string &key, std::vector<Field> &values);
+  Status Insert(const std::string &table, const std::string &key, std::vector<Field> &values) override;
 
   Status Delete(const std::string &table, const std::string &key) { throw "Delete: function not implemented!"; }
+
+  Status ReadIdx(const uint64_t idx, std::string &data) override;
  
  private:
   static void SerializeRow(const std::vector<Field> &values, std::string &data);

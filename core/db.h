@@ -97,6 +97,15 @@ class DB {
   ///
   virtual Status Delete(const std::string &table, const std::string &key) = 0;
 
+  /// 
+  /// Read a record from the log.
+  ///
+  /// @param idx Position of the record.
+  /// @param data Data in the read record.
+  /// @return Zero on success, a non-zero error code on error.
+  ///
+  virtual Status ReadIdx(const uint64_t idx, std::string &data) = 0;
+
   virtual ~DB() { }
 
   virtual bool ReInitBeforeTransaction() { return false; }

@@ -89,6 +89,8 @@ DB::Status BasicDB::Delete(const std::string &table, const std::string &key) {
   return kOK;
 }
 
+DB::Status BasicDB::ReadIdx(const uint64_t idx, std::string &data) { return Status(); }
+
 DB *NewBasicDB() {
   return new BasicDB;
 }

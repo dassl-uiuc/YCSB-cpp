@@ -36,6 +36,8 @@ class BasicDB : public DB {
 
   Status Delete(const std::string &table, const std::string &key);
 
+  Status ReadIdx(const uint64_t idx, std::string &data);
+
  private:
   static std::mutex mutex_;
 

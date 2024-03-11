@@ -29,12 +29,14 @@ enum Operation {
   SCAN,
   READMODIFYWRITE,
   DELETE,
+  RDIDX,
   INSERT_FAILED,
   READ_FAILED,
   UPDATE_FAILED,
   SCAN_FAILED,
   READMODIFYWRITE_FAILED,
   DELETE_FAILED,
+  RDIDX_FAILED,
   MAXOPTYPE
 };
 
@@ -224,6 +226,7 @@ class CoreWorkload {
   DB::Status TransactionScan(DB &db);
   DB::Status TransactionUpdate(DB &db);
   DB::Status TransactionInsert(DB &db);
+  DB::Status TransactionReadIdx(DB &db);
 
   std::string table_name_;
   int field_count_;

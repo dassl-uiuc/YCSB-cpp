@@ -294,6 +294,8 @@ bool CoreWorkload::DoTransaction(DB &db, ThreadState *_state) {
     case READMODIFYWRITE:
       status = TransactionReadModifyWrite(db);
       break;
+    case RDIDX:
+      break;
     default:
       throw utils::Exception("Operation request is not recognized!");
   }
@@ -373,6 +375,12 @@ DB::Status CoreWorkload::TransactionInsert(DB &db) {
   DB::Status s = db.Insert(table_name_, key, values);
   transaction_insert_key_sequence_->Acknowledge(key_num);
   return s;
+}
+
+DB::Status CoreWorkload::TransactionReadIdx(DB &db) {
+  uint64_t idx = transaction_insert_key_sequence_->Next();
+  std::string data;
+  return db.ReadIdx(idx, data);
 }
 
 const bool registered = ycsbc::WorkloadFactory::RegisterWorkload(
