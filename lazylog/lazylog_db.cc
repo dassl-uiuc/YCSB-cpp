@@ -14,10 +14,8 @@ void LazylogDB::Init() {
     lzlog_->Initialize(props);
 }
 
-DB::Status LazylogDB::Insert(const std::string& table, const std::string& key, std::vector<Field>& values) {
+DB::Status LazylogDB::Insert(const std::string& table, const std::string& _key, std::vector<Field>& values) {
     std::string data;
-    uint32_t key_len = key.size();
-    data.append(reinterpret_cast<char *>(&key_len), sizeof(key_len));
     SerializeRow(values, data);
 
     auto reqid = lzlog_->AppendEntryQuorum(data);
