@@ -18,7 +18,7 @@ DB::Status LazylogDB::Insert(const std::string &table, const std::string &_key, 
   std::string data;
   SerializeRow(values, data);
 
-  auto reqid = lzlog_->AppendEntryQuorum(data);
+  auto reqid = lzlog_->AppendEntryAll(data);
   if (reqid.first == 0)
     return Status::kError;
   else
