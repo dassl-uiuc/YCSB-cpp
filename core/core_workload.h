@@ -112,6 +112,9 @@ class CoreWorkload {
   static const std::string SCAN_PROPORTION_PROPERTY;
   static const std::string SCAN_PROPORTION_DEFAULT;
 
+  static const std::string RDIDX_PROPORTION_PROPERTY;
+  static const std::string RDIDX_PROPORTION_DEFAULT;
+
   ///
   /// The name of the property for the proportion of
   /// read-modify-write transactions.
@@ -150,6 +153,12 @@ class CoreWorkload {
   ///
   static const std::string SCAN_LENGTH_DISTRIBUTION_PROPERTY;
   static const std::string SCAN_LENGTH_DISTRIBUTION_DEFAULT;
+
+  static const std::string MIN_READ_IDX_PROPERTY;
+  static const std::string MIN_READ_IDX_DEFAULT;
+
+  static const std::string MAX_READ_IDX_PROPERTY;
+  static const std::string MAX_READ_IDX_DEFAULT;
 
   ///
   /// The name of the property for the order to insert records.

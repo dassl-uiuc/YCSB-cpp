@@ -12,6 +12,7 @@
 #include "scrambled_zipfian_generator.h"
 #include "skewed_latest_generator.h"
 #include "const_generator.h"
+#include "sequential_generator.h"
 #include "core_workload.h"
 #include "random_byte_generator.h"
 #include "utils/utils.h"
@@ -31,12 +32,14 @@ const char *ycsbc::kOperationString[ycsbc::MAXOPTYPE] = {
   "SCAN",
   "READMODIFYWRITE",
   "DELETE",
+  "RDIDX",
   "INSERT-FAILED",
   "READ-FAILED",
   "UPDATE-FAILED",
   "SCAN-FAILED",
   "READMODIFYWRITE-FAILED",
-  "DELETE-FAILED"
+  "DELETE-FAILED",
+  "RDIDX-FAILED"
 };
 
 const string CoreWorkload::TABLENAME_PROPERTY = "table";
@@ -69,6 +72,9 @@ const string CoreWorkload::INSERT_PROPORTION_DEFAULT = "0.0";
 const string CoreWorkload::SCAN_PROPORTION_PROPERTY = "scanproportion";
 const string CoreWorkload::SCAN_PROPORTION_DEFAULT = "0.0";
 
+const string CoreWorkload::RDIDX_PROPORTION_PROPERTY = "readidxproportion";
+const string CoreWorkload::RDIDX_PROPORTION_DEFAULT = "0.0";
+
 const string CoreWorkload::READMODIFYWRITE_PROPORTION_PROPERTY = "readmodifywriteproportion";
 const string CoreWorkload::READMODIFYWRITE_PROPORTION_DEFAULT = "0.0";
 
@@ -83,6 +89,12 @@ const string CoreWorkload::MIN_SCAN_LENGTH_DEFAULT = "1";
 
 const string CoreWorkload::MAX_SCAN_LENGTH_PROPERTY = "maxscanlength";
 const string CoreWorkload::MAX_SCAN_LENGTH_DEFAULT = "1000";
+
+const string CoreWorkload::MIN_READ_IDX_PROPERTY = "minreadidx";
+const string CoreWorkload::MIN_READ_IDX_DEFAULT = "0";
+
+const string CoreWorkload::MAX_READ_IDX_PROPERTY = "maxreadidx";
+const string CoreWorkload::MAX_READ_IDX_DEFAULT = "1000000";
 
 const string CoreWorkload::SCAN_LENGTH_DISTRIBUTION_PROPERTY = "scanlengthdistribution";
 const string CoreWorkload::SCAN_LENGTH_DISTRIBUTION_DEFAULT = "uniform";
@@ -120,6 +132,8 @@ void CoreWorkload::Init(const utils::Properties &p) {
                                                    SCAN_PROPORTION_DEFAULT));
   double readmodifywrite_proportion = std::stod(p.GetProperty(
       READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_DEFAULT));
+  double rdidx_proportion = std::stod(p.GetProperty(RDIDX_PROPORTION_PROPERTY,
+                                                    RDIDX_PROPORTION_DEFAULT));
 
   record_count_ = std::stoi(p.GetProperty(RECORD_COUNT_PROPERTY));
   std::string request_dist = p.GetProperty(REQUEST_DISTRIBUTION_PROPERTY,
@@ -129,6 +143,9 @@ void CoreWorkload::Init(const utils::Properties &p) {
   std::string scan_len_dist = p.GetProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,
                                             SCAN_LENGTH_DISTRIBUTION_DEFAULT);
   int insert_start = std::stoi(p.GetProperty(INSERT_START_PROPERTY, INSERT_START_DEFAULT));
+
+  uint64_t min_read_idx = std::stoi(p.GetProperty(MIN_READ_IDX_PROPERTY, MIN_READ_IDX_DEFAULT));
+  uint64_t max_read_idx = std::stoi(p.GetProperty(MAX_READ_IDX_PROPERTY, MAX_READ_IDX_DEFAULT));
 
   zero_padding_ = std::stoi(p.GetProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_DEFAULT));
 
@@ -159,6 +176,9 @@ void CoreWorkload::Init(const utils::Properties &p) {
   if (readmodifywrite_proportion > 0) {
     op_chooser_.AddValue(READMODIFYWRITE, readmodifywrite_proportion);
   }
+  if (rdidx_proportion > 0) {
+    op_chooser_.AddValue(RDIDX, rdidx_proportion);
+  }
 
   insert_key_sequence_ = new CounterGenerator(insert_start);
   transaction_insert_key_sequence_ = new AcknowledgedCounterGenerator(record_count_);
@@ -182,6 +202,8 @@ void CoreWorkload::Init(const utils::Properties &p) {
     }
   } else if (request_dist == "latest") {
     key_chooser_ = new SkewedLatestGenerator(*transaction_insert_key_sequence_);
+  } else if (request_dist == "sequential") {
+    key_chooser_ = new SequentialGenerator(min_read_idx, max_read_idx);
   } else {
     throw utils::Exception("Unknown request distribution: " + request_dist);
   }
@@ -378,7 +400,7 @@ DB::Status CoreWorkload::TransactionInsert(DB &db) {
 }
 
 DB::Status CoreWorkload::TransactionReadIdx(DB &db) {
-  uint64_t idx = transaction_insert_key_sequence_->Next();
+  uint64_t idx = key_chooser_->Next();
   std::string data;
   return db.ReadIdx(idx, data);
 }

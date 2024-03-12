@@ -1,0 +1,13 @@
+operationcount=1000000
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+minreadidx=0
+maxreadidx=1000000
+
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=0
+readidxproportion=1
+
+requestdistribution=sequential
