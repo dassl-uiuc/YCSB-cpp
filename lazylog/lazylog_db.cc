@@ -5,7 +5,7 @@
 
 namespace ycsbc {
 
-LazylogDB::LazylogDB() { lzlog_ = std::make_shared<lazylog::LazyLogClient>(); }
+LazylogDB::LazylogDB() { lzlog_ = std::make_shared<lazylog::LazyLogScalableClient>(); }
 
 void LazylogDB::Init() {
   lazylog::Properties props;

@@ -10,6 +10,7 @@
 
 #include <src/utils/properties.h>
 #include <src/client/lazylog_cli.h>
+#include <src/client/lazylog_scalable_cli.h>
 
 namespace ycsbc {
 
