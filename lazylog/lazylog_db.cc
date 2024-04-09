@@ -14,6 +14,10 @@ void LazylogDB::Init() {
   lzlog_->Initialize(props);
 }
 
+void LazylogDB::CleanUp() {
+  lzlog_->Finalize();
+}
+
 DB::Status LazylogDB::Insert(const std::string &table, const std::string &_key, std::vector<Field> &values) {
   std::string data;
   SerializeRow(values, data);

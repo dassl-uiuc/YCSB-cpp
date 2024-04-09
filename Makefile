@@ -104,6 +104,11 @@ ifeq ($(BIND_LAZYLOG), 1)
 	LDFLAGS += -llazylogcli -lbackendcli -lerpc -libverbs -lnuma -lglog
 endif
 
+ifeq ($(BIND_KAFKA), 1)
+	SOURCES += $(wildcard kafka/*.cc)
+	LDFLAGS += -lcppkafka
+endif
+
 CXXFLAGS += -std=c++17 -pthread $(EXTRA_CXXFLAGS) -I./ -I$(YAMLCPP_DIR)/include
 LDFLAGS += $(EXTRA_LDFLAGS) -lpthread
 SOURCES += $(wildcard core/*.cc)

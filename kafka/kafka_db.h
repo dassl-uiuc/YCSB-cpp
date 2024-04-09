@@ -1,22 +1,16 @@
-//
-// YCSB-cpp
-// lazylog_db.h
-//
+#ifndef YCSB_C_KAFKA_DB_H_
+#define YCSB_C_KAFKA_DB_H_
 
-#ifndef YCSB_C_LAZYLOG_DB_H_
-#define YCSB_C_LAYZLOG_DB_H_
+#include <atomic>
 
 #include "core/db.h"
-
-#include <src/utils/properties.h>
-#include <src/client/lazylog_cli.h>
-#include <src/client/lazylog_scalable_cli.h>
+#include "cppkafka/cppkafka.h"
 
 namespace ycsbc {
 
-class LazylogDB : public DB {
+class KafkaDB : public DB {
  public:
-  LazylogDB();
+  KafkaDB();
   void Init() override;
   void Cleanup() override;
 
@@ -34,12 +28,17 @@ class LazylogDB : public DB {
 
   Status Delete(const std::string &table, const std::string &key) { throw "Delete: function not implemented!"; }
 
-  Status ReadIdx(const uint64_t idx, std::string &data) override;
- 
+  Status ReadIdx(const uint64_t idx, std::string &data){};
+
+ protected:
+  cppkafka::Producer *producer_;
+  std::string topic_;
+  int shard_num_;
+  static std::atomic<int> global_id_cnt_;
+  int prod_id_;
+
  private:
   static void SerializeRow(const std::vector<Field> &values, std::string &data);
- protected:
-  std::shared_ptr<lazylog::LazyLogClient> lzlog_;
 };
 
 }  // namespace ycsbc
