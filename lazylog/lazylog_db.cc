@@ -5,17 +5,13 @@
 
 namespace ycsbc {
 
-LazylogDB::LazylogDB() { lzlog_ = std::make_shared<lazylog::LazyLogScalableClient>(); }
+LazylogDB::LazylogDB() { lzlog_ = std::make_shared<lazylog::LazyLogClient>(); }
 
 void LazylogDB::Init() {
   lazylog::Properties props;
   props.FromMap(props_->ToMap());
 
   lzlog_->Initialize(props);
-}
-
-void LazylogDB::CleanUp() {
-  lzlog_->Finalize();
 }
 
 DB::Status LazylogDB::Insert(const std::string &table, const std::string &_key, std::vector<Field> &values) {

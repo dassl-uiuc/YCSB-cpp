@@ -39,6 +39,7 @@ class KafkaDB : public DB {
 
  private:
   static void SerializeRow(const std::vector<Field> &values, std::string &data);
+  bool delivered_;
 };
 
 }  // namespace ycsbc

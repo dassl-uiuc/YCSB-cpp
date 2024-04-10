@@ -10,7 +10,7 @@
 
 #include <src/utils/properties.h>
 #include <src/client/lazylog_cli.h>
-#include <src/client/lazylog_scalable_cli.h>
+// #include <src/client/lazylog_scalable_cli.h>
 
 namespace ycsbc {
 
@@ -18,7 +18,6 @@ class LazylogDB : public DB {
  public:
   LazylogDB();
   void Init() override;
-  void Cleanup() override;
 
   Status Read(const std::string &table, const std::string &key, const std::vector<std::string> *fields,
               std::vector<Field> &result) {}
