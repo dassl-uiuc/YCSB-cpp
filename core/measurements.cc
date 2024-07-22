@@ -163,6 +163,8 @@ void HdrHistogramMeasurements::Emit(YAML::Node &node) {
     for (int p = 1; p < 100; p++) {
       cdf_node[p] = hdr_value_at_percentile(histogram_[op], p) / 1000.0;
     }
+    cdf_node[99.9] = hdr_value_at_percentile(histogram_[op], 99.9) / 1000.0;
+    cdf_node[99.99] = hdr_value_at_percentile(histogram_[op], 99.99) / 1000.0;
     op_node["cdf"] = cdf_node;
     node[kOperationString[op]] = op_node;
   }
