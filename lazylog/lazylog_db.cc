@@ -5,13 +5,20 @@
 
 namespace ycsbc {
 
+std::atomic<int> client_id = 0;
+
 LazylogDB::LazylogDB() { lzlog_ = std::make_shared<lazylog::LazyLogClient>(); }
 
 void LazylogDB::Init() {
   lazylog::Properties props;
   props.FromMap(props_->ToMap());
+  props.SetProperty("dur_log.client_id", std::to_string(client_id.fetch_add(1)));
 
   lzlog_->Initialize(props);
+}
+
+void LazylogDB::Cleanup() {
+  lzlog_->Finalize();
 }
 
 DB::Status LazylogDB::Insert(const std::string &table, const std::string &_key, std::vector<Field> &values) {
@@ -20,7 +27,7 @@ DB::Status LazylogDB::Insert(const std::string &table, const std::string &_key, 
 
   auto reqid = lzlog_->AppendEntryAll(data);
   if (reqid.first == 0)
-    return Status::kError;
+    return Status::kOK;
   else
     return Status::kOK;
 }

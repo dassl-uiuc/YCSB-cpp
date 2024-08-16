@@ -18,6 +18,7 @@ class LazylogDB : public DB {
  public:
   LazylogDB();
   void Init() override;
+  void Cleanup() override;
 
   Status Read(const std::string &table, const std::string &key, const std::vector<std::string> *fields,
               std::vector<Field> &result) {}
