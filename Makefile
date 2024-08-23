@@ -19,7 +19,7 @@ BIND_LMDB ?= 0
 # Extra options
 DEBUG_BUILD ?= 0
 EXTRA_CXXFLAGS ?=
-EXTRA_LDFLAGS ?= -ldl -lz -lsnappy -lzstd -lbz2 -llz4
+# EXTRA_LDFLAGS ?= -ldl -lz -lsnappy -lzstd -lbz2 -llz4
 
 # HdrHistogram for tail latency report
 BIND_HDRHISTOGRAM ?= 1
@@ -102,6 +102,12 @@ ifeq ($(BIND_LAZYLOG), 1)
 	SOURCES += $(wildcard lazylog/*.cc)
 	CXXFLAGS += -DERPC_INFINIBAND=true
 	LDFLAGS += -llazylogcli -lbackendcli -lerpc -libverbs -lnuma -lglog
+endif
+
+ifeq ($(BIND_LAZYKV), 1)
+	SOURCES += $(wildcard lazykv/*.cc)
+	CXXFLAGS += -DERPC_INFINIBAND=true
+	LDFLAGS += -lerpc -libverbs -lnuma
 endif
 
 ifeq ($(BIND_KAFKA), 1)
